@@ -53,4 +53,52 @@ func TestResolverPriority(t *testing.T) {
 	if result.ProfileName != "work" || result.Source != SourceDirectory {
 		t.Fatalf("expected directory match work, got %#v", result)
 	}
+	if result.Rule != "/projects/work/*" {
+		t.Fatalf("expected Rule '/projects/work/*', got %q", result.Rule)
+	}
+}
+
+func TestResolverRuleFieldPopulation(t *testing.T) {
+	resolver := NewResolver()
+	profiles := []config.Profile{
+		{
+			Profile: config.ProfileMeta{Name: "personal"},
+			User:    config.UserConfig{Name: "Sylphy", Email: "sylphy@example.com"},
+			Rules:   config.RulesConfig{URL: []string{"github.com:sylphy/*"}},
+		},
+	}
+
+	// URL match should populate Rule
+	result, err := resolver.Resolve(context.Background(), ResolveInput{
+		CurrentDir:     "/some/random/path",
+		RemoteURL:      "git@github.com:sylphy/repo.git",
+		Profiles:       profiles,
+		DefaultProfile: "personal",
+	})
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if result.Source != SourceURL {
+		t.Fatalf("expected URL match, got %s", result.Source)
+	}
+	if result.Rule != "github.com:sylphy/*" {
+		t.Fatalf("expected Rule 'github.com:sylphy/*', got %q", result.Rule)
+	}
+
+	// Default should have empty Rule
+	result2, err := resolver.Resolve(context.Background(), ResolveInput{
+		CurrentDir:     "/some/random/path",
+		RemoteURL:      "",
+		Profiles:       profiles,
+		DefaultProfile: "personal",
+	})
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if result2.Source != SourceDefault {
+		t.Fatalf("expected default match, got %s", result2.Source)
+	}
+	if result2.Rule != "" {
+		t.Fatalf("expected empty Rule for default, got %q", result2.Rule)
+	}
 }
