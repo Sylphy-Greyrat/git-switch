@@ -68,8 +68,18 @@ func ensureInclude(path string) error {
 		return fmt.Errorf("read ssh config: %w", err)
 	}
 	content := string(data)
-	if strings.Contains(content, includeLine) {
+	if hasUncommentedLine(content, includeLine) {
 		return nil
 	}
 	return os.WriteFile(path, []byte(includeLine+"\n"+content), 0o600)
+}
+
+func hasUncommentedLine(content, target string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == target {
+			return true
+		}
+	}
+	return false
 }

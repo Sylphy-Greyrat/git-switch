@@ -29,16 +29,20 @@ type ResolveResult struct {
 	Rule        string
 }
 
-type Resolver struct {
+type Resolver interface {
+	Resolve(ctx context.Context, input ResolveInput) (ResolveResult, error)
+}
+
+type defaultResolver struct {
 	directory DirectoryMatcher
 	url       URLMatcher
 }
 
 func NewResolver() Resolver {
-	return Resolver{directory: DirectoryMatcher{}, url: URLMatcher{}}
+	return &defaultResolver{directory: DirectoryMatcher{}, url: URLMatcher{}}
 }
 
-func (r Resolver) Resolve(ctx context.Context, input ResolveInput) (ResolveResult, error) {
+func (r *defaultResolver) Resolve(ctx context.Context, input ResolveInput) (ResolveResult, error) {
 	if err := ctx.Err(); err != nil {
 		return ResolveResult{}, err
 	}

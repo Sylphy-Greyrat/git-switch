@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/sylphy/git-switch/core/config"
@@ -16,7 +17,11 @@ func newUninstallCommand() *cobra.Command {
 		Short: "Uninstall git-switch and clean up",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Remove git alias
-			exec.Command("git", "config", "--global", "--unset", "alias.sw").Run()
+			out, err := exec.Command("git", "config", "--global", "--unset", "alias.sw").CombinedOutput()
+			if err != nil {
+				// Alias may not exist — report but don't fail
+				fmt.Fprintf(cmd.ErrOrStderr(), "Note: %s\n", strings.TrimSpace(string(out)))
+			}
 
 			if !keepConfig {
 				dir, err := config.DefaultConfigDir()

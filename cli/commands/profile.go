@@ -97,7 +97,7 @@ func profileRemoveCommand() *cobra.Command {
 	}
 }
 
-func defaultStore() (*config.FileStore, error) {
+func defaultStore() (config.ConfigStore, error) {
 	dir, err := config.DefaultConfigDir()
 	if err != nil {
 		return nil, err

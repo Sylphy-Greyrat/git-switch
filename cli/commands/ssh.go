@@ -28,11 +28,6 @@ func sshConfigCommand() *cobra.Command {
 				return err
 			}
 
-			store, err := defaultStore()
-			if err != nil {
-				return err
-			}
-
 			loader, err := defaultLoader()
 			if err != nil {
 				return err
@@ -43,7 +38,7 @@ func sshConfigCommand() *cobra.Command {
 				return err
 			}
 
-			profiles, err := store.ListProfiles(ctx)
+			profiles, err := loader.LoadProfiles(ctx)
 			if err != nil {
 				return err
 			}

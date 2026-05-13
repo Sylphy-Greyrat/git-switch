@@ -11,7 +11,8 @@ import (
 )
 
 func newInitCommand() *cobra.Command {
-	return &cobra.Command{
+	var force bool
+	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize git-switch configuration",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -19,7 +20,13 @@ func newInitCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := os.MkdirAll(filepath.Join(dir, "profiles"), 0o755); err != nil {
+
+			configPath := filepath.Join(dir, "config.yaml")
+			if _, err := os.Stat(configPath); err == nil && !force {
+				return fmt.Errorf("config already exists at %s (use --force to overwrite)", dir)
+			}
+
+			if err := os.MkdirAll(filepath.Join(dir, "profiles"), 0o700); err != nil {
 				return err
 			}
 
@@ -27,7 +34,7 @@ func newInitCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := os.WriteFile(filepath.Join(dir, "config.yaml"), mainConfig, 0o644); err != nil {
+			if err := os.WriteFile(configPath, mainConfig, 0o600); err != nil {
 				return err
 			}
 
@@ -41,7 +48,7 @@ func newInitCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := os.WriteFile(filepath.Join(dir, "profiles", "personal.yaml"), data, 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(dir, "profiles", "personal.yaml"), data, 0o600); err != nil {
 				return err
 			}
 
@@ -49,4 +56,6 @@ func newInitCommand() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&force, "force", false, "Overwrite existing configuration")
+	return cmd
 }

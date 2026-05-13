@@ -21,10 +21,6 @@ func ruleTestCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			store, err := defaultStore()
-			if err != nil {
-				return err
-			}
 			loader, err := defaultLoader()
 			if err != nil {
 				return err
@@ -35,7 +31,7 @@ func ruleTestCommand() *cobra.Command {
 				return err
 			}
 
-			profiles, err := store.ListProfiles(ctx)
+			profiles, err := loader.LoadProfiles(ctx)
 			if err != nil {
 				return err
 			}

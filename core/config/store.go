@@ -83,7 +83,7 @@ func (s *FileStore) SaveProfile(ctx context.Context, profile Profile) error {
 	}
 
 	profilesDir := filepath.Join(s.configDir, "profiles")
-	if err := os.MkdirAll(profilesDir, 0o755); err != nil {
+	if err := os.MkdirAll(profilesDir, 0o700); err != nil {
 		return fmt.Errorf("create profiles directory %s: %w", profilesDir, err)
 	}
 
@@ -93,7 +93,7 @@ func (s *FileStore) SaveProfile(ctx context.Context, profile Profile) error {
 	}
 
 	path := filepath.Join(profilesDir, profile.Profile.Name+".yaml")
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("write profile %s: %w", path, err)
 	}
 	return nil
