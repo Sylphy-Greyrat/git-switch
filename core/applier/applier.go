@@ -2,7 +2,7 @@ package applier
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/sylphy/git-switch/core/config"
 )
@@ -34,5 +34,15 @@ func (a *ProfileApplier) ApplySSHConfig(ctx context.Context, profile config.Prof
 }
 
 func (a *ProfileApplier) Revert(ctx context.Context) error {
-	return errors.New("revert not yet implemented")
+	var errs []error
+	if err := a.git.Revert(); err != nil {
+		errs = append(errs, fmt.Errorf("git revert: %w", err))
+	}
+	if err := a.ssh.Revert(); err != nil {
+		errs = append(errs, fmt.Errorf("ssh revert: %w", err))
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("revert errors: %v", errs)
+	}
+	return nil
 }

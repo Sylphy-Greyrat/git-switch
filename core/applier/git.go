@@ -12,13 +12,14 @@ import (
 
 type GitApplier struct {
 	configPath string
+	backup     []byte
 }
 
 func NewGitApplier(configPath string) GitApplier {
 	return GitApplier{configPath: configPath}
 }
 
-func (a GitApplier) ApplyGitConfig(ctx context.Context, profile config.Profile) error {
+func (a *GitApplier) ApplyGitConfig(ctx context.Context, profile config.Profile) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -35,11 +36,29 @@ func (a GitApplier) ApplyGitConfig(ctx context.Context, profile config.Profile) 
 		return fmt.Errorf("read git config %s: %w", path, err)
 	}
 
+	// Save backup for revert
+	a.backup = existing
+
 	merged := mergeGitConfig(string(existing), profile)
 
 	if err := os.WriteFile(path, []byte(merged), 0o644); err != nil {
 		return fmt.Errorf("write git config %s: %w", path, err)
 	}
+	return nil
+}
+
+func (a *GitApplier) Revert() error {
+	if a.backup == nil {
+		return nil
+	}
+	path, err := config.ExpandHome(a.configPath)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(path, a.backup, 0o644); err != nil {
+		return fmt.Errorf("restore git config backup: %w", err)
+	}
+	a.backup = nil
 	return nil
 }
 
@@ -52,6 +71,17 @@ func mergeGitConfig(existing string, profile config.Profile) string {
 	userStart, userEnd := findSection(lines, "user", "")
 	lines = setSectionKey(lines, userStart, userEnd, "user", "", "name", profile.User.Name)
 	lines = setSectionKey(lines, userStart, userEnd, "user", "", "email", profile.User.Email)
+
+	// GPG signing
+	if profile.GPG != nil && profile.GPG.SigningKey != "" {
+		lines = setSectionKey(lines, userStart, userEnd, "user", "", "signingkey", profile.GPG.SigningKey)
+		commitStart, commitEnd := findSection(lines, "commit", "")
+		gpgSign := "false"
+		if profile.GPG.SignCommits {
+			gpgSign = "true"
+		}
+		lines = setSectionKey(lines, commitStart, commitEnd, "commit", "", "gpgsign", gpgSign)
+	}
 
 	if profile.SSH != nil && profile.SSH.HostAlias != "" && len(profile.SSH.Hosts) > 0 {
 		subname := fmt.Sprintf("git@%s:", profile.SSH.HostAlias)
@@ -92,21 +122,18 @@ func setSectionKey(lines []string, start, end int, section, subname, key, value 
 	prefix := key + " ="
 
 	if start >= 0 {
-		// Section exists — find and replace the key
 		for i := start; i < end; i++ {
 			if strings.HasPrefix(strings.TrimSpace(lines[i]), prefix) {
 				lines[i] = newLine
 				return lines
 			}
 		}
-		// Key not found — append to existing section before next section or at end
 		lines = append(lines, "")
 		copy(lines[end+1:], lines[end:])
 		lines[end] = newLine
 		return lines
 	}
 
-	// Section doesn't exist — append
 	header := "[" + section
 	if subname != "" {
 		header += fmt.Sprintf(" %q", subname)
