@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go build artifacts
+/git-switch
+*.test
+*.exe
+*.out
+*.prof
+
+# Claude Code
+.claude/
+
+# Project-specific
+docs/superpowers/
