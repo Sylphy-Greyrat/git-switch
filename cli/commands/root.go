@@ -9,5 +9,11 @@ func NewRootCommand() *cobra.Command {
 	}
 	cmd.AddCommand(newInitCommand())
 	cmd.AddCommand(newProfileCommand())
+	cmd.AddCommand(newStatusCommand())
+	cmd.AddCommand(newRuleCommand())
+	cmd.AddCommand(newSSHCommand())
+	cmd.AddCommand(newHookCommand())
+	cmd.AddCommand(newTemplateCommand())
+	cmd.AddCommand(newUninstallCommand())
 	return cmd
 }
