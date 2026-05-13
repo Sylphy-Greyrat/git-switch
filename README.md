@@ -2,6 +2,8 @@
 
 A cross-platform CLI tool for managing multiple Git user profiles and SSH keys.
 
+[中文版](README_zh.md)
+
 ## Features
 
 - Multiple Git identities per project or remote URL

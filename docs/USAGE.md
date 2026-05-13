@@ -1,5 +1,7 @@
 # Git Switch Usage Guide
 
+[中文版](USAGE_zh.md)
+
 ## Profiles
 
 ### Create a profile
