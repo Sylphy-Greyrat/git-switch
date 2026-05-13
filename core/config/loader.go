@@ -34,6 +34,21 @@ func (l *Loader) LoadMain(ctx context.Context) (MainConfig, error) {
 	return cfg, nil
 }
 
+func (l *Loader) SaveMain(ctx context.Context, cfg MainConfig) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("marshal main config: %w", err)
+	}
+	path := filepath.Join(l.configDir, "config.yaml")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return fmt.Errorf("write main config %s: %w", path, err)
+	}
+	return nil
+}
+
 func (l *Loader) LoadProfiles(ctx context.Context) ([]Profile, error) {
 	cfg, err := l.LoadMain(ctx)
 	if err != nil {
