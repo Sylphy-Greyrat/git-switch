@@ -10,6 +10,8 @@ Thumbs.db
 
 # Go build artifacts
 /git-switch
+dist/
+*.sum
 *.test
 *.exe
 *.out

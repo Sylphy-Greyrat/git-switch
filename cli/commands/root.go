@@ -4,8 +4,9 @@ import "github.com/spf13/cobra"
 
 func NewRootCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "git-switch",
-		Short: "Manage multiple git users and SSH keys",
+		Use:     "git-switch",
+		Short:   "Manage multiple git users and SSH keys",
+		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCommand(args)
 		},
