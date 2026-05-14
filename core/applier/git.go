@@ -2,9 +2,11 @@ package applier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/sylphy/git-switch/core/config"
@@ -13,7 +15,10 @@ import (
 type GitApplier struct {
 	configPath string
 	backup     []byte
+	applied    bool
 }
+
+var ErrApplyAlreadyActive = errors.New("git config already applied; revert before applying again")
 
 func NewGitApplier(configPath string) GitApplier {
 	return GitApplier{configPath: configPath}
@@ -22,6 +27,9 @@ func NewGitApplier(configPath string) GitApplier {
 func (a *GitApplier) ApplyGitConfig(ctx context.Context, profile config.Profile) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if a.applied {
+		return ErrApplyAlreadyActive
 	}
 	path, err := config.ExpandHome(a.configPath)
 	if err != nil {
@@ -44,11 +52,12 @@ func (a *GitApplier) ApplyGitConfig(ctx context.Context, profile config.Profile)
 	if err := os.WriteFile(path, []byte(merged), 0o644); err != nil {
 		return fmt.Errorf("write git config %s: %w", path, err)
 	}
+	a.applied = true
 	return nil
 }
 
 func (a *GitApplier) Revert() error {
-	if a.backup == nil {
+	if !a.applied {
 		return nil
 	}
 	path, err := config.ExpandHome(a.configPath)
@@ -59,6 +68,7 @@ func (a *GitApplier) Revert() error {
 		return fmt.Errorf("restore git config backup: %w", err)
 	}
 	a.backup = nil
+	a.applied = false
 	return nil
 }
 
@@ -128,9 +138,7 @@ func setSectionKey(lines []string, start, end int, section, subname, key, value 
 				return lines
 			}
 		}
-		lines = append(lines, "")
-		copy(lines[end+1:], lines[end:])
-		lines[end] = newLine
+		lines = slices.Insert(lines, end, newLine)
 		return lines
 	}
 

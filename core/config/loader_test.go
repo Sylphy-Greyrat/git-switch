@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -57,6 +58,17 @@ rules:
 	}
 	if len(profiles) != 1 || profiles[0].Profile.Name != "personal" {
 		t.Fatalf("unexpected profiles: %#v", profiles)
+	}
+}
+
+func TestLoaderLoadMainMissingConfigSuggestsInit(t *testing.T) {
+	loader := NewLoader(t.TempDir())
+	_, err := loader.LoadMain(context.Background())
+	if err == nil {
+		t.Fatal("expected error for missing config")
+	}
+	if !strings.Contains(err.Error(), "git-switch init") {
+		t.Fatalf("expected init hint in error, got %v", err)
 	}
 }
 

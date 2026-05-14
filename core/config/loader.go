@@ -23,6 +23,9 @@ func (l *Loader) LoadMain(ctx context.Context) (MainConfig, error) {
 	}
 	path := filepath.Join(l.configDir, "config.yaml")
 	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return MainConfig{}, fmt.Errorf("config not found at %s; run git-switch init", path)
+	}
 	if err != nil {
 		return MainConfig{}, fmt.Errorf("read main config %s: %w", path, err)
 	}

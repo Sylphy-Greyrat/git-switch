@@ -31,12 +31,14 @@ const psHookMarker = "# git-switch hook"
 
 func PowerShellHookScript() string {
 	return psHookMarker + "\n" +
-		"function prompt {\n" +
+		"$global:GitSwitchOriginalPrompt = $function:prompt\n" +
+		"function git_switch_prompt {\n" +
 		"    $realLASTEXITCODE = $LASTEXITCODE\n" +
 		"    git-switch status --quiet 2>$null\n" +
 		"    $LASTEXITCODE = $realLASTEXITCODE\n" +
-		"    \"PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) \"\n" +
-		"}\n"
+		"    if ($global:GitSwitchOriginalPrompt) { & $global:GitSwitchOriginalPrompt }\n" +
+		"}\n" +
+		"Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n"
 }
 
 func InstallPowerShellHook() error {
@@ -80,12 +82,11 @@ func UninstallPowerShellHook() error {
 	if start == -1 {
 		return nil
 	}
-	// Find end of hook block (closing brace of prompt function)
-	end := strings.Index(content[start:], "}\n")
+	end := strings.Index(content[start:], "Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n")
 	if end == -1 {
 		return nil
 	}
-	end = start + end + 2
+	end = start + end + len("Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n")
 	newContent := strings.TrimRight(content[:start], "\n") + content[end:]
 	if err := os.WriteFile(path, []byte(newContent), 0o600); err != nil {
 		return fmt.Errorf("write %s: %w", path, err)

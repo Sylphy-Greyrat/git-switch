@@ -65,7 +65,7 @@ git sw profile list
     └── work.yaml         # 工作 profile
 ```
 
-详细用法请参阅 [docs/USAGE.md](docs/USAGE.md)。
+详细用法请参阅 [docs/USAGE.md](docs/USAGE_zh.md)。
 
 ## 许可证
 

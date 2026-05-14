@@ -6,11 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"unicode"
 
 	"gopkg.in/yaml.v3"
 )
 
-var ErrProfileNotFound = errors.New("profile not found")
+var (
+	ErrProfileNotFound    = errors.New("profile not found")
+	ErrInvalidProfileName = errors.New("invalid profile name")
+)
 
 type ConfigStore interface {
 	ListProfiles(ctx context.Context) ([]Profile, error)
@@ -25,6 +30,25 @@ type FileStore struct {
 
 func NewFileStore(configDir string) *FileStore {
 	return &FileStore{configDir: configDir}
+}
+
+func validateProfileName(name string) error {
+	if name == "" {
+		return fmt.Errorf("%w: name is required", ErrInvalidProfileName)
+	}
+	if containsInvalidProfileNameChar(name) || strings.Contains(name, "..") {
+		return fmt.Errorf("%w: %s", ErrInvalidProfileName, name)
+	}
+	return nil
+}
+
+func containsInvalidProfileNameChar(name string) bool {
+	for _, r := range name {
+		if r == '/' || r == '\\' || unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *FileStore) ListProfiles(ctx context.Context) ([]Profile, error) {
@@ -58,6 +82,9 @@ func (s *FileStore) GetProfile(ctx context.Context, name string) (Profile, error
 	if err := ctx.Err(); err != nil {
 		return Profile{}, err
 	}
+	if err := validateProfileName(name); err != nil {
+		return Profile{}, err
+	}
 	path := filepath.Join(s.configDir, "profiles", name+".yaml")
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -78,8 +105,8 @@ func (s *FileStore) SaveProfile(ctx context.Context, profile Profile) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if profile.Profile.Name == "" {
-		return errors.New("profile name is required")
+	if err := validateProfileName(profile.Profile.Name); err != nil {
+		return err
 	}
 
 	profilesDir := filepath.Join(s.configDir, "profiles")
@@ -101,6 +128,9 @@ func (s *FileStore) SaveProfile(ctx context.Context, profile Profile) error {
 
 func (s *FileStore) DeleteProfile(ctx context.Context, name string) error {
 	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := validateProfileName(name); err != nil {
 		return err
 	}
 	path := filepath.Join(s.configDir, "profiles", name+".yaml")

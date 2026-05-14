@@ -26,6 +26,33 @@ func TestURLMatcher(t *testing.T) {
 	}
 }
 
+func TestURLMatcherMultipleWildcards(t *testing.T) {
+	matcher := URLMatcher{}
+	matched := matcher.Match("git@gitlab.com:company/team/project.git", []Rule{{Profile: "work", Pattern: "gitlab.com:*/team/*"}})
+	if matched != "work" {
+		t.Fatalf("expected work, got %q", matched)
+	}
+}
+
+func TestDirectoryMatcherDoubleStarMiddle(t *testing.T) {
+	matcher := DirectoryMatcher{}
+	matched, err := matcher.Match("/projects/company/team/repo", []Rule{{Profile: "work", Pattern: "/projects/**/repo"}})
+	if err != nil {
+		t.Fatalf("match directory: %v", err)
+	}
+	if matched != "work" {
+		t.Fatalf("expected work, got %q", matched)
+	}
+}
+
+func TestURLMatcherWildcardMatchesNestedPath(t *testing.T) {
+	matcher := URLMatcher{}
+	matched := matcher.Match("git@github.com:sylphy/team/repo.git", []Rule{{Profile: "personal", Pattern: "github.com:sylphy/*"}})
+	if matched != "personal" {
+		t.Fatalf("expected personal, got %q", matched)
+	}
+}
+
 func TestResolverPriority(t *testing.T) {
 	resolver := NewResolver()
 	profiles := []config.Profile{

@@ -2,6 +2,9 @@ package config
 
 import (
 	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -42,5 +45,44 @@ func TestFileStoreSaveGetListDeleteProfile(t *testing.T) {
 
 	if _, err := store.GetProfile(ctx, "work"); err == nil {
 		t.Fatal("expected error for deleted profile")
+	}
+}
+
+func TestFileStoreRejectsProfilePathTraversal(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	store := NewFileStore(dir)
+	outsidePath := filepath.Join(dir, "..", "evil.yaml")
+
+	profile := Profile{
+		Profile: ProfileMeta{Name: "../evil"},
+		User:    UserConfig{Name: "Evil", Email: "evil@example.com"},
+	}
+
+	if err := store.SaveProfile(ctx, profile); !errors.Is(err, ErrInvalidProfileName) {
+		t.Fatalf("expected ErrInvalidProfileName from SaveProfile, got %v", err)
+	}
+	if _, err := os.Stat(outsidePath); !os.IsNotExist(err) {
+		t.Fatalf("path traversal created file outside profiles dir: %v", err)
+	}
+
+	if _, err := store.GetProfile(ctx, "../evil"); !errors.Is(err, ErrInvalidProfileName) {
+		t.Fatalf("expected ErrInvalidProfileName from GetProfile, got %v", err)
+	}
+	if err := store.DeleteProfile(ctx, "../evil"); !errors.Is(err, ErrInvalidProfileName) {
+		t.Fatalf("expected ErrInvalidProfileName from DeleteProfile, got %v", err)
+	}
+}
+
+func TestFileStoreRejectsControlCharacterProfileName(t *testing.T) {
+	ctx := context.Background()
+	store := NewFileStore(t.TempDir())
+	profile := Profile{
+		Profile: ProfileMeta{Name: "bad\nHost *"},
+		User:    UserConfig{Name: "Evil", Email: "evil@example.com"},
+	}
+
+	if err := store.SaveProfile(ctx, profile); !errors.Is(err, ErrInvalidProfileName) {
+		t.Fatalf("expected ErrInvalidProfileName for control character, got %v", err)
 	}
 }

@@ -294,6 +294,159 @@ func TestSSHApplierRevert(t *testing.T) {
 	}
 }
 
+func TestGitApplierRejectsSecondApplyBeforeRevert(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".gitconfig")
+	profile := config.Profile{User: config.UserConfig{Name: "First", Email: "first@example.com"}}
+
+	applier := NewGitApplier(path)
+	if err := applier.ApplyGitConfig(context.Background(), profile); err != nil {
+		t.Fatalf("first apply git config: %v", err)
+	}
+	if err := applier.ApplyGitConfig(context.Background(), profile); err == nil {
+		t.Fatal("expected second apply before revert to fail")
+	}
+}
+
+func TestGitApplierDoesNotBlockAfterFailedApply(t *testing.T) {
+	dir := t.TempDir()
+	profile := config.Profile{User: config.UserConfig{Name: "First", Email: "first@example.com"}}
+
+	applier := NewGitApplier(dir)
+	if err := applier.ApplyGitConfig(context.Background(), profile); err == nil {
+		t.Fatal("expected apply to fail when config path is a directory")
+	}
+
+	applier.configPath = filepath.Join(dir, ".gitconfig")
+	if err := applier.ApplyGitConfig(context.Background(), profile); err != nil {
+		t.Fatalf("expected apply after failed apply to succeed: %v", err)
+	}
+}
+
+func TestSSHApplierPreservesExistingConfigPermissions(t *testing.T) {
+	sshDir := t.TempDir()
+	configPath := filepath.Join(sshDir, "config")
+	if err := os.WriteFile(configPath, []byte("Host github.com\n"), 0o644); err != nil {
+		t.Fatalf("write ssh config: %v", err)
+	}
+
+	profile := config.Profile{
+		Profile: config.ProfileMeta{Name: "personal"},
+		SSH: &config.SSHConfig{
+			KeyFile:   "~/.ssh/id_rsa",
+			Hosts:     []string{"github.com"},
+			HostAlias: "github.com-personal",
+		},
+	}
+
+	applier := NewSSHApplier(sshDir)
+	if err := applier.ApplySSHConfig(context.Background(), profile); err != nil {
+		t.Fatalf("apply ssh config: %v", err)
+	}
+	info, err := os.Stat(configPath)
+	if err != nil {
+		t.Fatalf("stat ssh config: %v", err)
+	}
+	if info.Mode().Perm() != 0o644 {
+		t.Fatalf("expected permissions 0644, got %o", info.Mode().Perm())
+	}
+}
+
+func TestSSHApplierExpandsIdentityFileHome(t *testing.T) {
+	sshDir := t.TempDir()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	profile := config.Profile{
+		Profile: config.ProfileMeta{Name: "personal"},
+		SSH: &config.SSHConfig{
+			KeyFile:   "~/.ssh/id_rsa",
+			Hosts:     []string{"github.com"},
+			HostAlias: "github.com-personal",
+		},
+	}
+
+	applier := NewSSHApplier(sshDir)
+	if err := applier.ApplySSHConfig(context.Background(), profile); err != nil {
+		t.Fatalf("apply ssh config: %v", err)
+	}
+	generated, err := os.ReadFile(filepath.Join(sshDir, "config.d", "git-switch"))
+	if err != nil {
+		t.Fatalf("read generated ssh config: %v", err)
+	}
+	if strings.Contains(string(generated), "IdentityFile ~/") {
+		t.Fatalf("IdentityFile home was not expanded:\n%s", generated)
+	}
+	if !strings.Contains(string(generated), filepath.Join(home, ".ssh", "id_rsa")) {
+		t.Fatalf("IdentityFile missing expanded home:\n%s", generated)
+	}
+}
+
+func TestSSHApplierRejectsInvalidHostAlias(t *testing.T) {
+	sshDir := t.TempDir()
+	profile := config.Profile{
+		Profile: config.ProfileMeta{Name: "personal"},
+		SSH: &config.SSHConfig{
+			KeyFile:   "~/.ssh/id_rsa",
+			Hosts:     []string{"github.com"},
+			HostAlias: "bad alias",
+		},
+	}
+
+	applier := NewSSHApplier(sshDir)
+	if err := applier.ApplySSHConfig(context.Background(), profile); err == nil {
+		t.Fatal("expected invalid host alias to fail")
+	}
+}
+
+func TestSSHApplierRejectsInvalidHost(t *testing.T) {
+	sshDir := t.TempDir()
+	profile := config.Profile{
+		Profile: config.ProfileMeta{Name: "personal"},
+		SSH: &config.SSHConfig{
+			KeyFile: "~/.ssh/id_rsa",
+			Hosts:   []string{"bad host"},
+		},
+	}
+
+	applier := NewSSHApplier(sshDir)
+	if err := applier.ApplySSHConfig(context.Background(), profile); err == nil {
+		t.Fatal("expected invalid host to fail")
+	}
+}
+
+func TestSSHApplierRejectsInvalidKeyFile(t *testing.T) {
+	sshDir := t.TempDir()
+	profile := config.Profile{
+		Profile: config.ProfileMeta{Name: "personal"},
+		SSH: &config.SSHConfig{
+			KeyFile: "~/.ssh/id_rsa\n    ProxyCommand evil",
+			Hosts:   []string{"github.com"},
+		},
+	}
+
+	applier := NewSSHApplier(sshDir)
+	if err := applier.ApplySSHConfig(context.Background(), profile); err == nil {
+		t.Fatal("expected invalid key file to fail")
+	}
+}
+
+func TestSSHApplierReturnsExpandHomeErrorForKeyFile(t *testing.T) {
+	sshDir := t.TempDir()
+	t.Setenv("HOME", "")
+	profile := config.Profile{
+		Profile: config.ProfileMeta{Name: "personal"},
+		SSH: &config.SSHConfig{
+			KeyFile: "~/.ssh/id_rsa",
+			Hosts:   []string{"github.com"},
+		},
+	}
+
+	applier := NewSSHApplier(sshDir)
+	if err := applier.ApplySSHConfig(context.Background(), profile); err == nil {
+		t.Fatal("expected key file home expansion error")
+	}
+}
+
 func TestSSHApplierSkipsCommentedInclude(t *testing.T) {
 	sshDir := t.TempDir()
 

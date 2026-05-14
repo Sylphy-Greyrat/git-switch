@@ -25,12 +25,24 @@ func normalizeURL(remoteURL string) string {
 }
 
 func matchSimpleWildcard(value, pattern string) bool {
-	if !strings.Contains(pattern, "*") {
+	parts := strings.Split(pattern, "*")
+	if len(parts) == 1 {
 		return value == pattern
 	}
-	parts := strings.Split(pattern, "*")
-	if len(parts) != 2 {
+	if !strings.HasPrefix(value, parts[0]) {
 		return false
 	}
-	return strings.HasPrefix(value, parts[0]) && strings.HasSuffix(value, parts[1])
+	pos := len(parts[0])
+	for _, part := range parts[1:] {
+		if part == "" {
+			continue
+		}
+		idx := strings.Index(value[pos:], part)
+		if idx == -1 {
+			return false
+		}
+		pos += idx + len(part)
+	}
+	last := parts[len(parts)-1]
+	return last == "" || strings.HasSuffix(value, last)
 }

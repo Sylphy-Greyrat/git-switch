@@ -2,6 +2,7 @@ package matcher
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/sylphy/git-switch/core/config"
@@ -28,13 +29,17 @@ func (m DirectoryMatcher) Match(path string, rules []Rule) (string, error) {
 }
 
 func matchesDirectory(path, pattern string) bool {
-	if path == pattern {
+	matched, err := filepath.Match(pattern, path)
+	if err == nil && matched {
 		return true
 	}
-	if strings.Contains(pattern, "**") {
-		prefix := strings.Split(pattern, "**")[0]
-		return strings.HasPrefix(path, strings.TrimSuffix(prefix, string(filepath.Separator)))
-	}
-	matched, err := filepath.Match(pattern, path)
+	return matchGlobPattern(path, pattern)
+}
+
+func matchGlobPattern(value, pattern string) bool {
+	quoted := regexp.QuoteMeta(filepath.Clean(pattern))
+	quoted = strings.ReplaceAll(quoted, `\*\*`, `.*`)
+	quoted = strings.ReplaceAll(quoted, `\*`, `[^`+regexp.QuoteMeta(string(filepath.Separator))+`]*`)
+	matched, err := regexp.MatchString(`^`+quoted+`$`, filepath.Clean(value))
 	return err == nil && matched
 }
