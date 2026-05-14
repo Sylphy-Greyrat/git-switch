@@ -129,17 +129,7 @@ func profileUseCommand() *cobra.Command {
 				return fmt.Errorf("profile %q not found: %w", profileName, err)
 			}
 
-			// Write state file to .git/git-switch-profile
-			gitDir := filepath.Join(dir, ".git")
-			if err := os.MkdirAll(gitDir, 0o755); err != nil {
-				return fmt.Errorf("create .git directory: %w", err)
-			}
-			stateFile := filepath.Join(gitDir, "git-switch-profile")
-			if err := os.WriteFile(stateFile, []byte(profileName+"\n"), 0o600); err != nil {
-				return fmt.Errorf("write state file: %w", err)
-			}
-
-			// Apply profile to global git config
+			// Apply profile to global git config first
 			home, err := os.UserHomeDir()
 			if err != nil {
 				return err
@@ -155,6 +145,16 @@ func profileUseCommand() *cobra.Command {
 				if err := profileApplier.ApplySSHConfig(context.Background(), profile); err != nil {
 					return fmt.Errorf("apply ssh config: %w", err)
 				}
+			}
+
+			// Write state file to .git/git-switch-profile after successful config application
+			gitDir := filepath.Join(dir, ".git")
+			if err := os.MkdirAll(gitDir, 0o755); err != nil {
+				return fmt.Errorf("create .git directory: %w", err)
+			}
+			stateFile := filepath.Join(gitDir, "git-switch-profile")
+			if err := os.WriteFile(stateFile, []byte(profileName+"\n"), 0o600); err != nil {
+				return fmt.Errorf("write state file: %w", err)
 			}
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Set active profile to %s for %s\n", profileName, dir)

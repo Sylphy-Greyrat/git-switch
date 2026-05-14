@@ -79,11 +79,10 @@ func mergeGitConfig(existing string, profile config.Profile) string {
 	}
 
 	// Remove duplicate [user] sections — only keep the first
-	userStart, userEnd := findSection(lines, "user", "")
 	lines = removeDuplicateSections(lines, "user", "")
 
-	// Re-find after dedup since indices may have shifted
-	userStart, userEnd = findSection(lines, "user", "")
+	// Find section after dedup
+	userStart, userEnd := findSection(lines, "user", "")
 	lines = setSectionKey(lines, userStart, userEnd, "user", "", "name", profile.User.Name)
 	lines = setSectionKey(lines, userStart, userEnd, "user", "", "email", profile.User.Email)
 
@@ -139,24 +138,25 @@ func removeDuplicateSections(lines []string, section, subname string) []string {
 	}
 	header += "]"
 
+	var duplicates []struct{ start, end int }
 	first := -1
-	for i, line := range lines {
-		if strings.TrimSpace(line) == header {
+	for i := 0; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == header {
 			if first == -1 {
 				first = i
 			} else {
-				// Remove this section and its keys until next section or EOF
+				// Find end of this duplicate section
 				end := i + 1
-				for end < len(lines) {
-					if strings.HasPrefix(strings.TrimSpace(lines[end]), "[") {
-						break
-					}
+				for end < len(lines) && !strings.HasPrefix(strings.TrimSpace(lines[end]), "[") {
 					end++
 				}
-				lines = append(lines[:i], lines[end:]...)
-				return removeDuplicateSections(lines, section, subname)
+				duplicates = append(duplicates, struct{ start, end int }{i, end})
 			}
 		}
+	}
+	// Remove duplicates in reverse order to avoid index shifting
+	for i := len(duplicates) - 1; i >= 0; i-- {
+		lines = append(lines[:duplicates[i].start], lines[duplicates[i].end:]...)
 	}
 	return lines
 }
