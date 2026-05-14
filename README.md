@@ -15,6 +15,29 @@ A cross-platform CLI tool for managing multiple Git user profiles and SSH keys.
 
 ## Installation
 
+### Binary Download
+
+Download from [GitHub Releases](https://github.com/Sylphy-Greyrat/git-switch/releases/latest):
+
+```bash
+# macOS (Apple Silicon)
+curl -LO https://github.com/Sylphy-Greyrat/git-switch/releases/download/v0.1.0/git-switch-v0.1.0-aarch64-macos
+chmod +x git-switch-v0.1.0-aarch64-macos
+sudo mv git-switch-v0.1.0-aarch64-macos /usr/local/bin/git-switch
+
+# macOS (Intel)
+curl -LO https://github.com/Sylphy-Greyrat/git-switch/releases/download/v0.1.0/git-switch-v0.1.0-x86_64-macos
+chmod +x git-switch-v0.1.0-x86_64-macos
+sudo mv git-switch-v0.1.0-x86_64-macos /usr/local/bin/git-switch
+
+# Linux (x86_64)
+curl -LO https://github.com/Sylphy-Greyrat/git-switch/releases/download/v0.1.0/git-switch-v0.1.0-x86_64-linux
+chmod +x git-switch-v0.1.0-x86_64-linux
+sudo mv git-switch-v0.1.0-x86_64-linux /usr/local/bin/git-switch
+```
+
+### Go Install
+
 ```bash
 go install github.com/sylphy/git-switch/cli@latest
 ```
@@ -45,13 +68,23 @@ git sw profile list
 | `profile show <name>` | Show profile details |
 | `profile add <name>` | Add a new profile |
 | `profile remove <name>` | Remove a profile |
+| `profile current` | Show current active profile |
+| `profile edit <name>` | Edit profile in default editor |
+| `profile use <name>` | Set active profile for current directory |
 | `status` | Show current configuration status |
+| `rule list` | List all matching rules |
+| `rule add` | Add a matching rule to a profile |
+| `rule remove` | Remove a matching rule |
 | `rule test <path>` | Test directory matching |
 | `ssh config` | Regenerate SSH config |
 | `hook install` | Install `git sw` alias |
 | `hook uninstall` | Remove `git sw` alias |
+| `hook status` | Show hook installation status |
 | `template list` | List project templates |
+| `template create` | Create a new project template |
+| `template apply` | Apply template to project directory |
 | `uninstall` | Uninstall git-switch |
+| `--version` | Show version |
 
 ## Configuration
 

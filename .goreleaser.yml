@@ -23,8 +23,6 @@ archives:
 
 source:
   enabled: true
-  name_template: "source"
-  format: tar.gz
 
 checksum:
   name_template: checksums.txt

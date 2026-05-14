@@ -13,8 +13,10 @@ git-switch profile add work
 ### Edit a profile
 
 ```bash
-vim ~/.config/git-switch/profiles/work.yaml
+git-switch profile edit work
 ```
+
+Opens the profile in your default editor (`$EDITOR`).
 
 ### List profiles
 
@@ -28,6 +30,18 @@ git-switch profile list
 git-switch profile show work
 ```
 
+### Show current active profile
+
+```bash
+git-switch profile current
+```
+
+### Set active profile for current directory
+
+```bash
+git-switch profile use work
+```
+
 ## Status
 
 Show which profile is active and why:
@@ -37,6 +51,26 @@ git-switch status
 ```
 
 ## Rules
+
+### List all matching rules
+
+```bash
+git-switch rule list
+```
+
+### Add a matching rule
+
+```bash
+git-switch rule add
+```
+
+### Remove a matching rule
+
+```bash
+git-switch rule remove
+```
+
+### Test directory matching
 
 Test which profile would match a directory:
 
@@ -54,6 +88,8 @@ git-switch ssh config
 
 ## Git Alias
 
+### Install
+
 Install the `git sw` alias:
 
 ```bash
@@ -67,12 +103,36 @@ git sw status
 git sw profile list
 ```
 
+### Check status
+
+```bash
+git-switch hook status
+```
+
+### Uninstall
+
+```bash
+git-switch hook uninstall
+```
+
 ## Templates
 
-List available templates:
+### List templates
 
 ```bash
 git-switch template list
+```
+
+### Create a template
+
+```bash
+git-switch template create
+```
+
+### Apply a template
+
+```bash
+git-switch template apply
 ```
 
 ## Uninstall
@@ -83,4 +143,10 @@ git-switch uninstall
 
 # Keep configuration
 git-switch uninstall --keep-config
+```
+
+## Version
+
+```bash
+git-switch --version
 ```

@@ -13,8 +13,10 @@ git-switch profile add work
 ### 编辑 profile
 
 ```bash
-vim ~/.config/git-switch/profiles/work.yaml
+git-switch profile edit work
 ```
+
+使用默认编辑器（`$EDITOR`）打开 profile 文件。
 
 ### 列出所有 profiles
 
@@ -28,6 +30,18 @@ git-switch profile list
 git-switch profile show work
 ```
 
+### 显示当前激活的 profile
+
+```bash
+git-switch profile current
+```
+
+### 为当前目录设置活跃 profile
+
+```bash
+git-switch profile use work
+```
+
 ## 状态查看
 
 显示当前激活的 profile 及匹配原因：
@@ -36,7 +50,27 @@ git-switch profile show work
 git-switch status
 ```
 
-## 规则测试
+## 规则管理
+
+### 列出所有匹配规则
+
+```bash
+git-switch rule list
+```
+
+### 添加匹配规则
+
+```bash
+git-switch rule add
+```
+
+### 删除匹配规则
+
+```bash
+git-switch rule remove
+```
+
+### 测试目录匹配
 
 测试某个目录会匹配到哪个 profile：
 
@@ -54,6 +88,8 @@ git-switch ssh config
 
 ## Git 别名
 
+### 安装
+
 安装 `git sw` 别名：
 
 ```bash
@@ -67,12 +103,36 @@ git sw status
 git sw profile list
 ```
 
+### 查看状态
+
+```bash
+git-switch hook status
+```
+
+### 卸载别名
+
+```bash
+git-switch hook uninstall
+```
+
 ## 项目模板
 
-列出可用模板：
+### 列出模板
 
 ```bash
 git-switch template list
+```
+
+### 创建模板
+
+```bash
+git-switch template create
+```
+
+### 应用模板
+
+```bash
+git-switch template apply
 ```
 
 ## 卸载
@@ -83,4 +143,10 @@ git-switch uninstall
 
 # 仅卸载程序，保留配置
 git-switch uninstall --keep-config
+```
+
+## 版本查看
+
+```bash
+git-switch --version
 ```
