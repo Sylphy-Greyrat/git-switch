@@ -26,23 +26,30 @@ func hookInstallCommand() *cobra.Command {
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Installed git alias: git sw -> git-switch\n")
 
-			if shell != "" {
-				switch shell {
-				case "powershell", "pwsh":
-					if err := hook.InstallPowerShellHook(); err != nil {
-						return fmt.Errorf("powershell hook: %w", err)
-					}
-				default:
-					if err := hook.InstallShellHook(shell); err != nil {
-						return fmt.Errorf("shell hook: %w", err)
-					}
+			effectiveShell := shell
+			if effectiveShell == "" {
+				detectedShell, err := hook.DetectCurrentShell()
+				if err != nil {
+					return err
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "Installed shell hook for %s\n", shell)
+				effectiveShell = detectedShell
 			}
+
+			switch effectiveShell {
+			case "powershell", "pwsh":
+				if err := hook.InstallPowerShellHook(); err != nil {
+					return fmt.Errorf("powershell hook: %w", err)
+				}
+			default:
+				if err := hook.InstallShellHook(effectiveShell); err != nil {
+					return fmt.Errorf("shell hook: %w", err)
+				}
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Installed shell hook for %s\n", effectiveShell)
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&shell, "shell", "", "Install shell hook (bash, zsh, powershell)")
+	cmd.Flags().StringVar(&shell, "shell", "", "Install shell hook (bash, zsh, powershell, pwsh)")
 	return cmd
 }
 
@@ -73,7 +80,7 @@ func hookUninstallCommand() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&shell, "shell", "", "Remove shell hook (bash, zsh, powershell)")
+	cmd.Flags().StringVar(&shell, "shell", "", "Remove shell hook (bash, zsh, powershell, pwsh)")
 	return cmd
 }
 

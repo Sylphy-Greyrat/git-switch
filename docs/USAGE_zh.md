@@ -90,10 +90,16 @@ git-switch ssh config
 
 ### 安装
 
-安装 `git sw` 别名：
+安装 `git sw` 别名，并自动为当前 shell 安装 hook：
 
 ```bash
 git-switch hook install
+```
+
+如果无法识别当前 shell，可以显式指定。支持的 shell 包括 `bash`、`zsh`、`powershell` 和 `pwsh`：
+
+```bash
+git-switch hook install --shell zsh
 ```
 
 安装后可直接使用：

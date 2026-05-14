@@ -27,10 +27,14 @@ func psProfilePath() (string, error) {
 	return paths[0], nil
 }
 
-const psHookMarker = "# git-switch hook"
+const (
+	psBlockBegin = "\n# ------ git-switch BLOCK BEGIN ------"
+	psBlockEnd   = "# ------ git-switch BLOCK END ------"
+	psOldMarker  = "# git-switch hook"
+)
 
 func PowerShellHookScript() string {
-	return psHookMarker + "\n" +
+	return psBlockBegin + "\n" +
 		"$global:GitSwitchOriginalPrompt = $function:prompt\n" +
 		"function git_switch_prompt {\n" +
 		"    $realLASTEXITCODE = $LASTEXITCODE\n" +
@@ -38,7 +42,8 @@ func PowerShellHookScript() string {
 		"    $LASTEXITCODE = $realLASTEXITCODE\n" +
 		"    if ($global:GitSwitchOriginalPrompt) { & $global:GitSwitchOriginalPrompt }\n" +
 		"}\n" +
-		"Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n"
+		"Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n" +
+		psBlockEnd + "\n"
 }
 
 func InstallPowerShellHook() error {
@@ -78,15 +83,10 @@ func UninstallPowerShellHook() error {
 		return fmt.Errorf("read %s: %w", path, err)
 	}
 	content := string(data)
-	start := strings.Index(content, psHookMarker)
+	start, end := findPSBlockRange(content)
 	if start == -1 {
 		return nil
 	}
-	end := strings.Index(content[start:], "Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n")
-	if end == -1 {
-		return nil
-	}
-	end = start + end + len("Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n")
 	newContent := strings.TrimRight(content[:start], "\n") + content[end:]
 	if err := os.WriteFile(path, []byte(newContent), 0o600); err != nil {
 		return fmt.Errorf("write %s: %w", path, err)
@@ -106,5 +106,24 @@ func IsPowerShellHookInstalled() (bool, error) {
 		}
 		return false, fmt.Errorf("read %s: %w", path, err)
 	}
-	return strings.Contains(string(data), psHookMarker), nil
+	s := string(data)
+	return strings.Contains(s, psBlockBegin) || strings.Contains(s, psOldMarker), nil
+}
+
+func findPSBlockRange(content string) (int, int) {
+	start := strings.Index(content, psBlockBegin)
+	if start != -1 {
+		end := strings.Index(content[start:], psBlockEnd)
+		if end != -1 {
+			return start, start + end + len(psBlockEnd)
+		}
+	}
+	start = strings.Index(content, psOldMarker)
+	if start != -1 {
+		end := strings.Index(content[start:], "Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n")
+		if end != -1 {
+			return start, start + end + len("Set-Item -Path function:prompt -Value ${function:git_switch_prompt}\n")
+		}
+	}
+	return -1, -1
 }

@@ -22,17 +22,45 @@ func rcFile(shell string) (string, error) {
 	}
 }
 
-const hookMarker = "# git-switch hook"
+const (
+	blockBegin = "\n# ------ git-switch BLOCK BEGIN ------"
+	blockEnd   = "# ------ git-switch BLOCK END ------"
+	oldMarker  = "# git-switch hook"
+)
+
+const unsupportedShellError = "could not detect current shell; use --shell bash, --shell zsh, --shell powershell, or --shell pwsh"
+
+func DetectCurrentShell() (string, error) {
+	if shell := normalizeShellName(os.Getenv("SHELL")); shell != "" {
+		return shell, nil
+	}
+	if shell := normalizeShellName(os.Getenv("ComSpec")); shell != "" {
+		return shell, nil
+	}
+	return "", fmt.Errorf(unsupportedShellError)
+}
+
+func normalizeShellName(shellPath string) string {
+	normalizedPath := strings.ReplaceAll(shellPath, "\\", "/")
+	name := strings.TrimSuffix(strings.ToLower(filepath.Base(normalizedPath)), ".exe")
+	switch name {
+	case "bash", "zsh", "pwsh", "powershell":
+		return name
+	default:
+		return ""
+	}
+}
 
 func ShellHookScript() string {
-	return hookMarker + "\n" +
+	return blockBegin + "\n" +
 		"git_switch_cd() {\n" +
 		"    \\cd \"$@\" || return\n" +
 		"    if git rev-parse --git-dir >/dev/null 2>&1; then\n" +
 		"        git-switch status --quiet\n" +
 		"    fi\n" +
 		"}\n" +
-		"alias cd=git_switch_cd\n"
+		"alias cd=git_switch_cd\n" +
+		blockEnd + "\n"
 }
 
 func InstallShellHook(shell string) error {
@@ -69,15 +97,10 @@ func UninstallShellHook(shell string) error {
 		return fmt.Errorf("read %s: %w", path, err)
 	}
 	content := string(data)
-	start := strings.Index(content, hookMarker)
+	start, end := findBlockRange(content)
 	if start == -1 {
 		return nil
 	}
-	end := strings.Index(content[start:], "alias cd=git_switch_cd\n")
-	if end == -1 {
-		return nil
-	}
-	end = start + end + len("alias cd=git_switch_cd\n")
 	newContent := strings.TrimRight(content[:start], "\n") + content[end:]
 	if err := os.WriteFile(path, []byte(newContent), 0o600); err != nil {
 		return fmt.Errorf("write %s: %w", path, err)
@@ -97,5 +120,24 @@ func IsShellHookInstalled(shell string) (bool, error) {
 		}
 		return false, fmt.Errorf("read %s: %w", path, err)
 	}
-	return strings.Contains(string(data), hookMarker), nil
+	s := string(data)
+	return strings.Contains(s, blockBegin) || strings.Contains(s, oldMarker), nil
+}
+
+func findBlockRange(content string) (int, int) {
+	start := strings.Index(content, blockBegin)
+	if start != -1 {
+		end := strings.Index(content[start:], blockEnd)
+		if end != -1 {
+			return start, start + end + len(blockEnd)
+		}
+	}
+	start = strings.Index(content, oldMarker)
+	if start != -1 {
+		end := strings.Index(content[start:], "alias cd=git_switch_cd\n")
+		if end != -1 {
+			return start, start + end + len("alias cd=git_switch_cd\n")
+		}
+	}
+	return -1, -1
 }

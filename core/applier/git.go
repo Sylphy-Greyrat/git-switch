@@ -78,7 +78,12 @@ func mergeGitConfig(existing string, profile config.Profile) string {
 		lines = nil
 	}
 
+	// Remove duplicate [user] sections — only keep the first
 	userStart, userEnd := findSection(lines, "user", "")
+	lines = removeDuplicateSections(lines, "user", "")
+
+	// Re-find after dedup since indices may have shifted
+	userStart, userEnd = findSection(lines, "user", "")
 	lines = setSectionKey(lines, userStart, userEnd, "user", "", "name", profile.User.Name)
 	lines = setSectionKey(lines, userStart, userEnd, "user", "", "email", profile.User.Email)
 
@@ -125,6 +130,35 @@ func findSection(lines []string, section, subname string) (start, end int) {
 		}
 	}
 	return -1, -1
+}
+
+func removeDuplicateSections(lines []string, section, subname string) []string {
+	header := "[" + section
+	if subname != "" {
+		header += fmt.Sprintf(" %q", subname)
+	}
+	header += "]"
+
+	first := -1
+	for i, line := range lines {
+		if strings.TrimSpace(line) == header {
+			if first == -1 {
+				first = i
+			} else {
+				// Remove this section and its keys until next section or EOF
+				end := i + 1
+				for end < len(lines) {
+					if strings.HasPrefix(strings.TrimSpace(lines[end]), "[") {
+						break
+					}
+					end++
+				}
+				lines = append(lines[:i], lines[end:]...)
+				return removeDuplicateSections(lines, section, subname)
+			}
+		}
+	}
+	return lines
 }
 
 func setSectionKey(lines []string, start, end int, section, subname, key, value string) []string {

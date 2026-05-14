@@ -90,13 +90,19 @@ git-switch ssh config
 
 ### Install
 
-Install the `git sw` alias:
+Install the `git sw` alias and the hook for the current shell:
 
 ```bash
 git-switch hook install
 ```
 
-Then use:
+If the current shell cannot be detected, specify it explicitly. Supported shells are `bash`, `zsh`, `powershell`, and `pwsh`:
+
+```bash
+git-switch hook install --shell zsh
+```
+
+After installation, you can use:
 
 ```bash
 git sw status
