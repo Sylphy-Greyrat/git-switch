@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/sylphy/git-switch/core/applier"
 	"github.com/sylphy/git-switch/core/config"
 	"github.com/sylphy/git-switch/core/matcher"
 )
@@ -113,20 +114,50 @@ func profileUseCommand() *cobra.Command {
 		Short: "Set active profile for current directory",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			profileName := args[0]
 			dir, err := os.Getwd()
 			if err != nil {
 				return err
 			}
+
+			store, err := defaultStore()
+			if err != nil {
+				return err
+			}
+			profile, err := store.GetProfile(context.Background(), profileName)
+			if err != nil {
+				return fmt.Errorf("profile %q not found: %w", profileName, err)
+			}
+
 			// Write state file to .git/git-switch-profile
 			gitDir := filepath.Join(dir, ".git")
 			if err := os.MkdirAll(gitDir, 0o755); err != nil {
 				return fmt.Errorf("create .git directory: %w", err)
 			}
 			stateFile := filepath.Join(gitDir, "git-switch-profile")
-			if err := os.WriteFile(stateFile, []byte(args[0]+"\n"), 0o600); err != nil {
+			if err := os.WriteFile(stateFile, []byte(profileName+"\n"), 0o600); err != nil {
 				return fmt.Errorf("write state file: %w", err)
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Set active profile to %s for %s\n", args[0], dir)
+
+			// Apply profile to global git config
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return err
+			}
+			profileApplier := applier.NewProfileApplier(
+				filepath.Join(home, ".gitconfig"),
+				filepath.Join(home, ".ssh"),
+			)
+			if err := profileApplier.ApplyGitConfig(context.Background(), profile); err != nil {
+				return fmt.Errorf("apply git config: %w", err)
+			}
+			if profile.SSH != nil {
+				if err := profileApplier.ApplySSHConfig(context.Background(), profile); err != nil {
+					return fmt.Errorf("apply ssh config: %w", err)
+				}
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "Set active profile to %s for %s\n", profileName, dir)
 			return nil
 		},
 	}
