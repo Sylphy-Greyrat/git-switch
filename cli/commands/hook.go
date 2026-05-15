@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -46,6 +47,20 @@ func hookInstallCommand() *cobra.Command {
 				}
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Installed shell hook for %s\n", effectiveShell)
+
+			// Install completion
+			completionScript, err := genCompletionScript(effectiveShell, cmd.Root())
+			if err != nil {
+				return fmt.Errorf("generate completion: %w", err)
+			}
+			if err := hook.WriteCompletionScript(effectiveShell, completionScript); err != nil {
+				return fmt.Errorf("write completion: %w", err)
+			}
+			if err := hook.InjectCompletionIntoRC(effectiveShell); err != nil {
+				return fmt.Errorf("inject completion: %w", err)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Installed completion for %s\n", effectiveShell)
+
 			return nil
 		},
 	}
@@ -83,6 +98,16 @@ func hookUninstallCommand() *cobra.Command {
 				}
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Removed shell hook for %s\n", shell)
+
+			// Remove completion
+			if err := hook.RemoveCompletionFromRC(shell); err != nil {
+				return fmt.Errorf("remove completion: %w", err)
+			}
+			if err := hook.RemoveCompletionScript(shell); err != nil {
+				return fmt.Errorf("remove completion: %w", err)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Removed completion for %s\n", shell)
+
 			return nil
 		},
 	}
@@ -129,4 +154,25 @@ func hookStatusCommand() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func genCompletionScript(shell string, root *cobra.Command) (string, error) {
+	var buf bytes.Buffer
+	switch shell {
+	case "bash":
+		if err := root.GenBashCompletionV2(&buf, true); err != nil {
+			return "", err
+		}
+	case "zsh":
+		if err := root.GenZshCompletion(&buf); err != nil {
+			return "", err
+		}
+	case "powershell", "pwsh":
+		if err := root.GenPowerShellCompletion(&buf); err != nil {
+			return "", err
+		}
+	default:
+		return "", fmt.Errorf("unsupported shell: %s", shell)
+	}
+	return buf.String(), nil
 }

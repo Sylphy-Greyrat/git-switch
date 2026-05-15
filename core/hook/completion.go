@@ -109,6 +109,47 @@ func RemoveCompletionBlock(rcContent string) string {
 	return strings.TrimRight(rcContent[:begin], "\n") + rcContent[end:]
 }
 
+func InjectCompletionIntoRC(shell string) error {
+	path, err := rcFileForCompletion(shell)
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	newContent, err := InjectCompletionBlock(string(data), shell)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(newContent), 0o600)
+}
+
+func RemoveCompletionFromRC(shell string) error {
+	path, err := rcFileForCompletion(shell)
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	newContent := RemoveCompletionBlock(string(data))
+	return os.WriteFile(path, []byte(newContent), 0o600)
+}
+
+func rcFileForCompletion(shell string) (string, error) {
+	switch shell {
+	case "powershell", "pwsh":
+		return psProfilePath()
+	default:
+		return rcFile(shell)
+	}
+}
+
 func IsCompletionInstalled(rcContent string) bool {
 	return strings.Contains(rcContent, completionBlockBegin)
 }
