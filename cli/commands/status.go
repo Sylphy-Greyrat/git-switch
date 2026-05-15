@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/sylphy/git-switch/core/applier"
 	"github.com/sylphy/git-switch/core/config"
 	"github.com/sylphy/git-switch/core/matcher"
 )
 
 func newStatusCommand() *cobra.Command {
-	return &cobra.Command{
+	var quiet bool
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show current configuration status",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,6 +54,33 @@ func newStatusCommand() *cobra.Command {
 				return err
 			}
 
+			// Apply the matched profile
+			for _, p := range profiles {
+				if p.Profile.Name == result.ProfileName {
+					home, err := os.UserHomeDir()
+					if err != nil {
+						return err
+					}
+					profileApplier := applier.NewProfileApplier(
+						filepath.Join(home, ".gitconfig"),
+						filepath.Join(home, ".ssh"),
+					)
+					if err := profileApplier.ApplyGitConfig(ctx, p); err != nil {
+						return fmt.Errorf("apply git config: %w", err)
+					}
+					if p.SSH != nil {
+						if err := profileApplier.ApplySSHConfig(ctx, p); err != nil {
+							return fmt.Errorf("apply ssh config: %w", err)
+						}
+					}
+					break
+				}
+			}
+
+			if quiet {
+				return nil
+			}
+
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "Working directory: %s\n", dir)
 			if remoteURL != "" {
@@ -77,6 +107,8 @@ func newStatusCommand() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&quiet, "quiet", false, "Silent mode, apply profile without output")
+	return cmd
 }
 
 func getRemoteURL() string {
