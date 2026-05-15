@@ -57,26 +57,32 @@ func hookUninstallCommand() *cobra.Command {
 	var shell string
 	cmd := &cobra.Command{
 		Use:   "uninstall",
-		Short: "Remove git alias 'git sw'",
+		Short: "Remove git alias and shell hooks",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := hook.UninstallGitAlias(); err != nil {
 				return err
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Removed git alias: git sw\n")
 
-			if shell != "" {
-				switch shell {
-				case "powershell", "pwsh":
-					if err := hook.UninstallPowerShellHook(); err != nil {
-						return fmt.Errorf("powershell hook: %w", err)
-					}
-				default:
-					if err := hook.UninstallShellHook(shell); err != nil {
-						return fmt.Errorf("shell hook: %w", err)
-					}
+			if shell == "" {
+				detectedShell, err := hook.DetectCurrentShell()
+				if err != nil {
+					return err
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "Removed shell hook for %s\n", shell)
+				shell = detectedShell
 			}
+
+			switch shell {
+			case "powershell", "pwsh":
+				if err := hook.UninstallPowerShellHook(); err != nil {
+					return fmt.Errorf("powershell hook: %w", err)
+				}
+			default:
+				if err := hook.UninstallShellHook(shell); err != nil {
+					return fmt.Errorf("shell hook: %w", err)
+				}
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Removed shell hook for %s\n", shell)
 			return nil
 		},
 	}
