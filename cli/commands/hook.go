@@ -151,6 +151,25 @@ func hookStatusCommand() *cobra.Command {
 				fmt.Fprintf(out, "powershell hook: not installed\n")
 			}
 
+			for _, sh := range []string{"bash", "zsh"} {
+				installed, err := hook.IsCompletionInstalledForShell(sh)
+				if err != nil {
+					continue
+				}
+				if installed {
+					fmt.Fprintf(out, "completion (%s): installed\n", sh)
+				} else {
+					fmt.Fprintf(out, "completion (%s): not installed\n", sh)
+				}
+			}
+
+			installed, err = hook.IsCompletionInstalledForShell("pwsh")
+			if err == nil && installed {
+				fmt.Fprintf(out, "completion (pwsh): installed\n")
+			} else {
+				fmt.Fprintf(out, "completion (pwsh): not installed\n")
+			}
+
 			return nil
 		},
 	}

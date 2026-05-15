@@ -153,3 +153,18 @@ func rcFileForCompletion(shell string) (string, error) {
 func IsCompletionInstalled(rcContent string) bool {
 	return strings.Contains(rcContent, completionBlockBegin)
 }
+
+func IsCompletionInstalledForShell(shell string) (bool, error) {
+	path, err := rcFileForCompletion(shell)
+	if err != nil {
+		return false, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return IsCompletionInstalled(string(data)), nil
+}
