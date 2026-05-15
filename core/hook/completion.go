@@ -96,7 +96,7 @@ func InjectCompletionBlock(rcContent, shell string) (string, error) {
 	return strings.TrimRight(rcContent, "\n") + srcLine, nil
 }
 
-func RemoveCompletionBlock(rcContent, shell string) string {
+func RemoveCompletionBlock(rcContent string) string {
 	begin := strings.Index(rcContent, completionBlockBegin)
 	if begin == -1 {
 		return rcContent

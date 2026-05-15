@@ -118,11 +118,8 @@ func TestInjectCompletionBlockZsh(t *testing.T) {
 }
 
 func TestRemoveCompletionBlock(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-
 	rc := "export PATH=$PATH:/usr/local/bin\n# git-switch completion BEGIN\nsource /tmp/test.sh\n# git-switch completion END\necho done\n"
-	result := RemoveCompletionBlock(rc, "bash")
+	result := RemoveCompletionBlock(rc)
 	if strings.Contains(result, "git-switch completion") {
 		t.Fatal("should not contain completion markers")
 	}
