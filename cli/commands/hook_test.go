@@ -21,6 +21,7 @@ func TestHookInstallAutoDetectsCurrentShell(t *testing.T) {
 	assertContains(t, output, "Installed git alias: git sw -> git-switch")
 	assertContains(t, output, "Installed shell hook for zsh")
 	assertFileContains(t, filepath.Join(home, ".zshrc"), "git_switch_cd()")
+	assertFileContains(t, filepath.Join(home, ".zshrc"), "# git-switch completion BEGIN")
 	assertGlobalGitAlias(t)
 }
 
@@ -63,6 +64,31 @@ func TestHookInstallHelpListsSupportedShells(t *testing.T) {
 	assertContains(t, output, "bash, zsh, powershell, pwsh")
 }
 
+func TestHookInstallCompletionIdempotent(t *testing.T) {
+	home := configureIsolatedHookInstall(t)
+	t.Setenv("SHELL", "/bin/bash")
+
+	// First install
+	_, err := executeHookInstall()
+	if err != nil {
+		t.Fatalf("first hook install error = %v", err)
+	}
+	rcPath := filepath.Join(home, ".bashrc")
+	data1, _ := os.ReadFile(rcPath)
+	firstCount := strings.Count(string(data1), "# git-switch completion BEGIN")
+
+	// Second install
+	_, err = executeHookInstall()
+	if err != nil {
+		t.Fatalf("second hook install error = %v", err)
+	}
+	data2, _ := os.ReadFile(rcPath)
+	secondCount := strings.Count(string(data2), "# git-switch completion BEGIN")
+	if secondCount > firstCount {
+		t.Fatal("completion block should be idempotent")
+	}
+}
+
 func configureIsolatedHookInstall(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
@@ -99,6 +125,17 @@ func assertFileContains(t *testing.T, path string, want string) {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	assertContains(t, string(data), want)
+}
+
+func assertFileNotContains(t *testing.T, path string, want string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return // file not existing is fine
+	}
+	if strings.Contains(string(data), want) {
+		t.Fatalf("expected %s to NOT contain %q", path, want)
+	}
 }
 
 func assertContains(t *testing.T, got string, want string) {
