@@ -28,27 +28,30 @@ func completionFilePath(shell string) (string, error) {
 	case "powershell", "pwsh":
 		return filepath.Join(dir, "git-switch.ps1"), nil
 	default:
-		return "", fmt.Errorf("unsupported shell: %s", shell)
+		return "", fmt.Errorf("unsupported shell: %s (supported: bash, zsh, powershell, pwsh)", shell)
 	}
 }
 
 const (
-	completionBlockBegin = "# git-switch completion BEGIN"
+	completionBlockBegin = "\n# git-switch completion BEGIN"
 	completionBlockEnd   = "# git-switch completion END"
 )
 
-func completionSourceLine(shell string) string {
-	path, _ := completionFilePath(shell)
+func completionSourceLine(shell string) (string, error) {
+	path, err := completionFilePath(shell)
+	if err != nil {
+		return "", err
+	}
 	switch shell {
 	case "bash":
-		return fmt.Sprintf("\n%s\nsource %s\n%s\n", completionBlockBegin, path, completionBlockEnd)
+		return fmt.Sprintf("%s\nsource %s\n%s\n", completionBlockBegin, path, completionBlockEnd), nil
 	case "zsh":
-		return fmt.Sprintf("\n%[1]s\nfpath=(%[2]s $fpath)\nautoload -Uz compinit && compinit -i\n%[3]s\n",
-			completionBlockBegin, filepath.Dir(path), completionBlockEnd)
+		return fmt.Sprintf("%s\nfpath=(%s $fpath)\n%s\n",
+			completionBlockBegin, filepath.Dir(path), completionBlockEnd), nil
 	case "powershell", "pwsh":
-		return fmt.Sprintf("\n%s\n. %s\n%s\n", completionBlockBegin, path, completionBlockEnd)
+		return fmt.Sprintf("%s\n. %s\n%s\n", completionBlockBegin, path, completionBlockEnd), nil
 	default:
-		return ""
+		return "", fmt.Errorf("unsupported shell: %s (supported: bash, zsh, powershell, pwsh)", shell)
 	}
 }
 
@@ -76,19 +79,21 @@ func RemoveCompletionScript(shell string) error {
 		return fmt.Errorf("remove completion script: %w", err)
 	}
 	dir := filepath.Dir(path)
-	entries, _ := os.ReadDir(dir)
-	if len(entries) == 0 {
+	if entries, err := os.ReadDir(dir); err == nil && len(entries) == 0 {
 		_ = os.Remove(dir)
 	}
 	return nil
 }
 
-func InjectCompletionBlock(rcContent, shell string) string {
-	srcLine := completionSourceLine(shell)
-	if strings.Contains(rcContent, completionBlockBegin) {
-		return rcContent
+func InjectCompletionBlock(rcContent, shell string) (string, error) {
+	srcLine, err := completionSourceLine(shell)
+	if err != nil {
+		return "", err
 	}
-	return strings.TrimRight(rcContent, "\n") + srcLine
+	if strings.Contains(rcContent, completionBlockBegin) {
+		return rcContent, nil
+	}
+	return strings.TrimRight(rcContent, "\n") + srcLine, nil
 }
 
 func RemoveCompletionBlock(rcContent, shell string) string {
