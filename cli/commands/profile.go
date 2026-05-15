@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/sylphy/git-switch/core/applier"
@@ -48,9 +49,10 @@ func profileListCommand() *cobra.Command {
 
 func profileShowCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "show <name>",
-		Short: "Show profile details",
-		Args:  cobra.ExactArgs(1),
+		Use:               "show <name>",
+		Short:             "Show profile details",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: profileNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := defaultStore()
 			if err != nil {
@@ -91,9 +93,10 @@ func profileAddCommand() *cobra.Command {
 
 func profileRemoveCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "remove <name>",
-		Short: "Remove profile",
-		Args:  cobra.ExactArgs(1),
+		Use:               "remove <name>",
+		Short:             "Remove profile",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: profileNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			store, err := defaultStore()
 			if err != nil {
@@ -110,9 +113,10 @@ func profileRemoveCommand() *cobra.Command {
 
 func profileUseCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "use <name>",
-		Short: "Set active profile for current directory",
-		Args:  cobra.ExactArgs(1),
+		Use:               "use <name>",
+		Short:             "Set active profile for current directory",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: profileNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			profileName := args[0]
 			dir, err := os.Getwd()
@@ -216,9 +220,10 @@ func profileCurrentCommand() *cobra.Command {
 
 func profileEditCommand() *cobra.Command {
 	return &cobra.Command{
-		Use:   "edit <name>",
-		Short: "Edit profile in default editor",
-		Args:  cobra.ExactArgs(1),
+		Use:               "edit <name>",
+		Short:             "Edit profile in default editor",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: profileNameCompletion,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, err := config.DefaultConfigDir()
 			if err != nil {
@@ -247,4 +252,22 @@ func defaultStore() (config.ConfigStore, error) {
 		return nil, err
 	}
 	return config.NewFileStore(dir), nil
+}
+
+func profileNameCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	store, err := defaultStore()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	profiles, err := store.ListProfiles(cmd.Context())
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	var names []string
+	for _, p := range profiles {
+		if strings.HasPrefix(p.Profile.Name, toComplete) {
+			names = append(names, p.Profile.Name)
+		}
+	}
+	return names, cobra.ShellCompDirectiveNoFileComp
 }
