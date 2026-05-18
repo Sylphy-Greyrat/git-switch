@@ -152,6 +152,19 @@ func rcFileForCompletion(shell string) (string, error) {
 	}
 }
 
+func RCPathHint(shell string) string {
+	path, err := rcFileForCompletion(shell)
+	if err != nil {
+		switch shell {
+		case "powershell", "pwsh":
+			return "$PROFILE"
+		default:
+			return "~/" + shell + "rc"
+		}
+	}
+	return path
+}
+
 func IsCompletionInstalled(rcContent string) bool {
 	return strings.Contains(rcContent, completionBlockBegin)
 }

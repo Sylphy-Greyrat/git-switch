@@ -60,6 +60,8 @@ func hookInstallCommand() *cobra.Command {
 				return fmt.Errorf("inject completion: %w", err)
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Installed completion for %s\n", effectiveShell)
+			fmt.Fprintf(cmd.OutOrStdout(), "Run 'source %s' or open a new terminal for completion to take effect\n",
+				hook.RCPathHint(effectiveShell))
 
 			return nil
 		},

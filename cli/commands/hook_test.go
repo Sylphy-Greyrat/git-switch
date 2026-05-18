@@ -22,6 +22,8 @@ func TestHookInstallAutoDetectsCurrentShell(t *testing.T) {
 	assertContains(t, output, "Installed shell hook for zsh")
 	assertFileContains(t, filepath.Join(home, ".zshrc"), "git_switch_cd()")
 	assertFileContains(t, filepath.Join(home, ".zshrc"), "# git-switch completion BEGIN")
+	assertContains(t, output, "source")
+	assertContains(t, output, "for completion to take effect")
 	assertGlobalGitAlias(t)
 }
 
