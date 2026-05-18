@@ -46,8 +46,10 @@ func completionSourceLine(shell string) (string, error) {
 	case "bash":
 		return fmt.Sprintf("%s\nsource %s\n%s\n", completionBlockBegin, path, completionBlockEnd), nil
 	case "zsh":
-		return fmt.Sprintf("%s\nfpath=(%s $fpath)\n%s\n",
-			completionBlockBegin, filepath.Dir(path), completionBlockEnd), nil
+		// fpath ensures compinit finds it if it runs after this block;
+		// source activates immediately when compinit has already run.
+		return fmt.Sprintf("%s\nfpath=(%s $fpath)\nsource %s 2>/dev/null\n%s\n",
+			completionBlockBegin, filepath.Dir(path), path, completionBlockEnd), nil
 	case "powershell", "pwsh":
 		return fmt.Sprintf("%s\n. %s\n%s\n", completionBlockBegin, path, completionBlockEnd), nil
 	default:
