@@ -9,7 +9,8 @@ A cross-platform CLI tool for managing multiple Git user profiles and SSH keys.
 - Multiple Git identities per project or remote URL
 - SSH key configuration generation
 - YAML configuration with nginx-style include support
-- Git alias integration via `git sw`
+- Shell completion for bash, zsh, and PowerShell
+- Git alias integration via `git sw` with cd-auto-switch hook
 - Cross-platform support for Linux, macOS, and Windows
 - Project templates for quick setup
 
@@ -77,9 +78,10 @@ git sw profile list
 | `rule remove` | Remove a matching rule |
 | `rule test <path>` | Test directory matching |
 | `ssh config` | Regenerate SSH config |
-| `hook install` | Install `git sw` alias |
-| `hook uninstall` | Remove `git sw` alias |
-| `hook status` | Show hook installation status |
+| `hook install` | Install `git sw` alias, shell hook, and completion |
+| `hook uninstall` | Remove `git sw` alias, shell hook, and completion |
+| `hook status` | Show hook and completion installation status |
+| `completion <shell>` | Generate shell completion script |
 | `template list` | List project templates |
 | `template create` | Create a new project template |
 | `template apply` | Apply template to project directory |

@@ -9,7 +9,8 @@
 - 按项目或远程 URL 自动切换 Git 身份
 - SSH 密钥配置自动生成
 - YAML 配置，支持 nginx 风格的 include 机制
-- Git 别名集成（`git sw`）
+- Shell 补全（bash、zsh、PowerShell）
+- Git 别名集成（`git sw`），带 cd 自动切换 hook
 - 跨平台支持：Linux、macOS、Windows
 - 项目模板，快速初始化
 
@@ -77,9 +78,10 @@ git sw profile list
 | `rule remove` | 删除匹配规则 |
 | `rule test <path>` | 测试目录匹配规则 |
 | `ssh config` | 重新生成 SSH 配置 |
-| `hook install` | 安装 `git sw` 别名 |
-| `hook uninstall` | 移除 `git sw` 别名 |
-| `hook status` | 显示 hook 安装状态 |
+| `hook install` | 安装 `git sw` 别名、shell hook 和补全 |
+| `hook uninstall` | 移除 `git sw` 别名、shell hook 和补全 |
+| `hook status` | 显示 hook 和补全安装状态 |
+| `completion <shell>` | 生成 shell 补全脚本 |
 | `template list` | 列出项目模板 |
 | `template create` | 创建新项目模板 |
 | `template apply` | 将模板应用到项目目录 |
