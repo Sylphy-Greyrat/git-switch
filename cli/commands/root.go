@@ -17,6 +17,7 @@ func NewRootCommand() *cobra.Command {
 	cmd.AddCommand(newRuleCommand())
 	cmd.AddCommand(newSSHCommand())
 	cmd.AddCommand(newHookCommand())
+	cmd.AddCommand(newCompletionCommand())
 	cmd.AddCommand(newTemplateCommand())
 	cmd.AddCommand(newUninstallCommand())
 	return cmd
