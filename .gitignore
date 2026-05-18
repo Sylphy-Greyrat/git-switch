@@ -11,15 +11,17 @@ Thumbs.db
 # Go build artifacts
 /git-switch
 dist/
-*.sum
 *.test
 *.exe
 *.out
 *.prof
+go.work.sum
+
+# Graphify (generated)
+graphify-out/
 
 # Claude Code
 .claude/
-.worktrees/
 
 # Project-specific
 docs/superpowers/

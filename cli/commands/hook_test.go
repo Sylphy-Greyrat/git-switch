@@ -107,6 +107,55 @@ func executeHookInstall(args ...string) (string, error) {
 	return out.String(), err
 }
 
+func executeHookStatus(args ...string) (string, error) {
+	cmd := hookStatusCommand()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs(args)
+	err := cmd.Execute()
+	return out.String(), err
+}
+
+func TestHookStatusOutput(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(home, ".gitconfig"))
+
+	output, err := executeHookStatus()
+	if err != nil {
+		t.Fatalf("hook status error = %v", err)
+	}
+
+	assertContains(t, output, "git alias 'sw': not installed")
+	assertContains(t, output, "shell hook (bash): not installed")
+	assertContains(t, output, "shell hook (zsh): not installed")
+	assertContains(t, output, "powershell hook: not installed")
+	assertContains(t, output, "completion (bash): not installed")
+	assertContains(t, output, "completion (zsh): not installed")
+	assertContains(t, output, "completion (pwsh): not installed")
+}
+
+func TestHookStatusShowsInstalledCompletion(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(home, ".gitconfig"))
+	t.Setenv("SHELL", "/bin/bash")
+
+	if _, err := executeHookInstall(); err != nil {
+		t.Fatalf("hook install error = %v", err)
+	}
+
+	output, err := executeHookStatus()
+	if err != nil {
+		t.Fatalf("hook status error = %v", err)
+	}
+
+	assertContains(t, output, "git alias 'sw': installed")
+	assertContains(t, output, "shell hook (bash): installed")
+	assertContains(t, output, "completion (bash): installed")
+}
+
 func assertGlobalGitAlias(t *testing.T) {
 	t.Helper()
 	data, err := os.ReadFile(os.Getenv("GIT_CONFIG_GLOBAL"))
