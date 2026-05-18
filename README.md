@@ -104,4 +104,4 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed usage instructions.
 
 ## License
 
-MIT
+[GPL-3.0](LICENSE)
